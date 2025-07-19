@@ -99,4 +99,4 @@ if (Test-Path $iconFile) {
 $shortcut.Save()
 
 Write-Host "Done!"
-pause
+Read-Host -Prompt "Press Enter to exit"
