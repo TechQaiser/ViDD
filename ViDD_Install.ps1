@@ -94,7 +94,7 @@ Write-Host "Creating desktop shortcut..."
 $WshShell = New-Object -ComObject WScript.Shell
 $desktopPath = [Environment]::GetFolderPath("Desktop")
 $shortcut = $WshShell.CreateShortcut("$desktopPath\$shortcutName")
-$shortcut.TargetPath = "$finalFolder\$exeName"
+$shortcut.TargetPath = "$finalFolder\$batName"
 $shortcut.WorkingDirectory = $finalFolder
 if (Test-Path $iconFile) {
     $shortcut.IconLocation = $iconFile
