@@ -20,7 +20,7 @@ $extractFolder = "C:\vidd_exe"
 $exeName = "run.exe"
 $batName = "run_me.bat"
 $shortcutName = "ViDD Advance Downloader.lnk"
-$iconFile = "$PSScriptRoot\main.icon"  # Assuming the .icon file is in same folder as the script
+$iconFile = "$extractFolder\Icons\main.icon"  # Adjusted path for icon
 
 Write-Host "Downloading file..."
 Invoke-WebRequest -Uri $downloadURL -OutFile $archiveFile -UseBasicParsing
@@ -28,7 +28,10 @@ Invoke-WebRequest -Uri $downloadURL -OutFile $archiveFile -UseBasicParsing
 Write-Host "Downloaded file size:"
 (Get-Item $archiveFile).length
 
-If (!(Test-Path $extractFolder)) { New-Item -ItemType Directory -Path $extractFolder | Out-Null }
+# Create extraction folder if it doesn't exist
+If (!(Test-Path $extractFolder)) {
+    New-Item -ItemType Directory -Path $extractFolder | Out-Null
+}
 
 # Check header
 $headerBytes = Get-Content -Path $archiveFile -Encoding Byte -TotalCount 4
@@ -37,7 +40,7 @@ $header = ($headerBytes | ForEach-Object { $_.ToString("X2") }) -join ""
 Write-Host "File header: $header"
 
 if ($header -eq "52617221") {
-    Write-Host "Detected  archive."
+    Write-Host "Detected RAR archive."
 
     # Check WinRAR
     $winrar = "${env:ProgramFiles}\WinRAR\WinRAR.exe"
@@ -64,7 +67,7 @@ if ($header -eq "52617221") {
     exit
 }
 
-# Use extract folder as final folder
+# Use extraction folder directly
 $finalFolder = $extractFolder
 Write-Host "Using final folder path: $finalFolder"
 
@@ -96,7 +99,12 @@ if (Test-Path $iconFile) {
 } else {
     Write-Host "Icon file not found. Using default icon."
 }
+$shortcut.WindowStyle = 7  # Start minimized
 $shortcut.Save()
 
 Write-Host "Done!"
-Read-Host -Prompt "Press Enter to exit"
+if ($Host.Name -eq 'ConsoleHost') {
+    Read-Host -Prompt "Press Enter to exit"
+} else {
+    Start-Sleep -Seconds 10
+}
