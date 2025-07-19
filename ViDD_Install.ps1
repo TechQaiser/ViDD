@@ -1,6 +1,11 @@
 # ========================================
 # ViDD Advanced Downloader Installer Script
 # ========================================
+# Relaunch in interactive PowerShell if run via pipe
+if ($Host.Name -ne 'ConsoleHost') {
+    Start-Process powershell -ArgumentList "-NoExit", "-ExecutionPolicy Bypass", "-File `"$PSCommandPath`"" -Verb RunAs
+    exit
+}
 
 # Check for admin
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole] "Administrator"))
