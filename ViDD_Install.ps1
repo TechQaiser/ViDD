@@ -73,13 +73,6 @@ Write-Host "Using final folder path: $finalFolder"
 Write-Host "Adding folder to Defender exclusions..."
 Add-MpPreference -ExclusionPath $finalFolder
 
-# Add to system PATH
-Write-Host "Adding exe to environment PATH..."
-$existingPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
-if ($existingPath -notlike "*$finalFolder*") {
-    [Environment]::SetEnvironmentVariable("Path", "$existingPath;$finalFolder", "Machine")
-}
-
 # Create desktop shortcut directly to run.exe
 Write-Host "Creating desktop shortcut..."
 $WshShell = New-Object -ComObject WScript.Shell
