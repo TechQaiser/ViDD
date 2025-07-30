@@ -14,6 +14,14 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
     exit
 }
 
+# =========================
+# Remove old folder if exists
+# =========================
+if (Test-Path $extractFolder) {
+    Write-Host "Removing old installation folder..."
+    Remove-Item -Path $extractFolder -Recurse -Force
+}
+
 $downloadURL = "https://www.api-qsr.shop/vidd_exe.zip"
 $archiveFile = "$env:TEMP\vidd_exe.zip"
 $extractFolder = "C:\vidd_exe"
