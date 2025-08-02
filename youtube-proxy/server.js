@@ -3,7 +3,9 @@ import fetch from 'node-fetch';
 import HttpsProxyAgent from 'https-proxy-agent';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 
 // Your paid proxy (username:password@IP:port)
 const proxy = 'http://jvgSsvhgOjvDWSD:jYWDFWfSWuzbqDW@207.135.200.39:48594';
