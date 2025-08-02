@@ -1,6 +1,6 @@
-const express = require("express");
-const cors = require("cors");
-const fetch = require("node-fetch");
+import express from "express";
+import cors from "cors";
+import fetch from "node-fetch";
 
 const app = express();
 app.use(cors());
@@ -12,14 +12,13 @@ app.get("/", (req, res) => {
   res.send("✅ Proxy Server Active");
 });
 
-// Streaming endpoint for RapidAPI links
+// Streaming endpoint
 app.get("/stream", async (req, res) => {
   const fileUrl = req.query.url;
 
   if (!fileUrl) return res.status(400).send("Missing ?url=");
 
   try {
-    // Fetch with browser headers to bypass 403
     const response = await fetch(fileUrl, {
       headers: {
         "User-Agent":
@@ -31,7 +30,7 @@ app.get("/stream", async (req, res) => {
       },
     });
 
-    // Forward status & headers
+    // Pass through headers and stream data
     res.status(response.status);
     response.body.pipe(res);
   } catch (err) {
