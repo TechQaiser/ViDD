@@ -1,30 +1,46 @@
-import express from 'express';
-import fetch from 'node-fetch';
-import HttpsProxyAgent from 'https-proxy-agent';
+// =========================
+// VIDD Proxy Server for Railway
+// =========================
+
+const express = require("express");
+const cors = require("cors");
+const fetch = require("node-fetch"); // For proxying requests
 
 const app = express();
+
+// Enable CORS for all requests
+app.use(cors());
+app.use(express.json());
+
+// Railway gives a dynamic port via process.env.PORT
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
+// ===== Root Route (Fixes "Not Found") =====
+app.get("/", (req, res) => {
+  res.send("✅ VIDD Proxy Server is running on Railway!");
+});
 
-// Your paid proxy (username:password@IP:port)
-const proxy = 'http://jvgSsvhgOjvDWSD:jYWDFWfSWuzbqDW@207.135.200.39:48594';
+// ===== Example Proxy Endpoint =====
+// Use: /proxy?url=https://example.com
+app.get("/proxy", async (req, res) => {
+  const targetUrl = req.query.url;
 
-app.get('/', async (req, res) => {
-  const url = req.query.url;
-  if (!url) return res.status(400).send('Missing ?url parameter');
+  if (!targetUrl) {
+    return res.status(400).json({ error: "Missing ?url= parameter" });
+  }
 
   try {
-    const agent = new HttpsProxyAgent(proxy);
-    const response = await fetch(url, { agent });
+    const response = await fetch(targetUrl);
+    const data = await response.text();
 
-    // Stream the response directly to browser
-    res.status(response.status);
-    response.body.pipe(res);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Proxy fetch error');
+    // Forward the response to the client
+    res.send(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
-app.listen(PORT, () => console.log(`Proxy server running on port ${PORT}`));
+// ===== Start Server =====
+app.listen(PORT, () => {
+  console.log(`🚀 VIDD Proxy Server is running on port ${PORT}`);
+});
