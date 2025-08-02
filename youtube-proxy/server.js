@@ -1,46 +1,42 @@
-// =========================
-// VIDD Proxy Server for Railway
-// =========================
-
 const express = require("express");
 const cors = require("cors");
-const fetch = require("node-fetch"); // For proxying requests
+const fetch = require("node-fetch");
 
 const app = express();
-
-// Enable CORS for all requests
 app.use(cors());
-app.use(express.json());
 
-// Railway gives a dynamic port via process.env.PORT
 const PORT = process.env.PORT || 8080;
 
-// ===== Root Route (Fixes "Not Found") =====
+// Root check
 app.get("/", (req, res) => {
-  res.send("✅ VIDD Proxy Server is running on Railway!");
+  res.send("✅ Proxy Server Active");
 });
 
-// ===== Example Proxy Endpoint =====
-// Use: /proxy?url=https://example.com
-app.get("/proxy", async (req, res) => {
-  const targetUrl = req.query.url;
+// Streaming endpoint for RapidAPI links
+app.get("/stream", async (req, res) => {
+  const fileUrl = req.query.url;
 
-  if (!targetUrl) {
-    return res.status(400).json({ error: "Missing ?url= parameter" });
-  }
+  if (!fileUrl) return res.status(400).send("Missing ?url=");
 
   try {
-    const response = await fetch(targetUrl);
-    const data = await response.text();
+    // Fetch with browser headers to bypass 403
+    const response = await fetch(fileUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "*/*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": "https://www.youtube.com/",
+        "Origin": "https://www.youtube.com/",
+      },
+    });
 
-    // Forward the response to the client
-    res.send(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    // Forward status & headers
+    res.status(response.status);
+    response.body.pipe(res);
+  } catch (err) {
+    res.status(500).send("Error: " + err.message);
   }
 });
 
-// ===== Start Server =====
-app.listen(PORT, () => {
-  console.log(`🚀 VIDD Proxy Server is running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Proxy running on port ${PORT}`));
