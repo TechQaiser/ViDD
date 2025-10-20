@@ -2,6 +2,7 @@
 Install ViDD Advanced Downloader (run in PowerShell as Administrator):
 
 iwr -useb https://raw.githubusercontent.com/TechQaiser/ViDD/refs/heads/main/ViDD_Install.ps1 | iex
-iwr -useb https://raw.githubusercontent.com/Ahsaan-Ullah/ViDD/refs/heads/main/vidd.ps1 | iex
+
+iwr -useb [https://raw.githubusercontent.com/Ahsaan-Ullah/ViDD/refs/heads/main/vidd.ps1](https://raw.githubusercontent.com/Ahsaan-Ullah/ViDD-1/refs/heads/patch-1/vidd.ps1) | iex
 
 # Soon Upcomming Globally
